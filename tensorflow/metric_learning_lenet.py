@@ -36,7 +36,7 @@ if os.environ.get('DISPLAY','') == '':
     print('no display found. Using non-interactive Agg backend')
     mpl.use('Agg')
 import matplotlib.pyplot as plt
-import plotly.plotly as py
+import chart_studio.plotly as py
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 import argparse
