@@ -246,18 +246,12 @@ def read_data_sets(train_dir,
         'Validation size should be between 0 and {}. Received: {}.'
         .format(len(train_images), validation_size))
 
-  validation_images = train_images[:validation_size]
-  validation_labels = train_labels[:validation_size]
   train_images = train_images[validation_size:]
   train_labels = train_labels[validation_size:]
 
   train = DataSet(train_images, train_labels, dtype=dtype, reshape=reshape)
-  validation = DataSet(validation_images,
-                       validation_labels,
-                       dtype=dtype,
-                       reshape=reshape)
-  test = DataSet(test_images, test_labels, dtype=dtype, reshape=reshape)
-
+  test = fake()
+  validation = fake()
   return base.Datasets(train=train, validation=validation, test=test)
 
 
