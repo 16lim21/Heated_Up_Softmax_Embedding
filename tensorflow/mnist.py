@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import gzip
+import cv2
 
 import numpy
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -30,6 +31,42 @@ from tensorflow.python.framework import dtypes
 def _read32(bytestream):
   dt = numpy.dtype(numpy.uint32).newbyteorder('>')
   return numpy.frombuffer(bytestream.read(4), dtype=dt)[0]
+
+def resize_images(imdir, imsize): 
+ """Resizes images to fit require image shape
+ help on how to resize from here: https://www.tutorialkart.com/opencv/python/opencv-python-resize-image/
+
+  Args:
+    imdir: path to directory of images that needs to be resized (path ends with a '/')
+    imsize: size of resized image 
+
+  Returns:
+    file path to resized imagesd
+  """
+
+  print('resizing {}'.format(imdir))
+  IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
+  
+  try:
+      os.stat(imdir + 'resized')
+  except:
+      os.makedirs(imdir + 'resized')
+
+  for image_path in tqdm.tqdm(IMAGE_PATHS):
+      image_name = imdir.split('/')[-1]
+      class_name = imdir.split('/')[-2]
+      subdir = image_path.split('/')[-2]
+
+      image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+      newimage = cv2.resize(image, (imsize, imsize), interpolation = cv2.INTER_AREA)
+
+      if class_name == 'Others': 
+          cv2.imwrite(imdir + 'resized/Others/{}/{}'.format(subdir,image_name), newimage)
+      else:
+          cv2.imwrite(imdir + 'resized/{}/{}'.format(subdir,image_name), newimage)
 
 
 def extract_images(f):
@@ -213,11 +250,14 @@ def read_data_sets(train_dir,
     test = fake()
     return base.Datasets(train=train, validation=validation, test=test)
 
-  TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
-  TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
-
-  local_file = #base.maybe_download(TRAIN_IMAGES, train_dir, SOURCE_URL + TRAIN_IMAGES)
   
+  TRAIN_IMAGES = '/home/michael/data/crop'
+  TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
+  
+  resize_images(TRAIN_IMAGES, 28)
+
+  local_file = gzip.compress( + 'crop_images.gz'
+
   with open(local_file, 'rb') as f:
     train_images = extract_images(f)
 
