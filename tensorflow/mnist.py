@@ -124,8 +124,9 @@ def extract_labels(imdir):
       else: 
           labels.append(5)
 
+    print(len(labels))
     labelnp = numpy.array(labels, dtype=numpy.uint8)
-
+    print(labelnp.shape)
     return labelnp
 
 
