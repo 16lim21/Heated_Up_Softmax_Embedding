@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import gzip
 import cv2
+import tarfile
 
 import numpy
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -41,7 +42,7 @@ def resize_images(imdir, imsize):
     imsize: size of resized image 
 
   Returns:
-    file path to resized imagesd
+    nothing
   """
 
   print('resizing {}'.format(imdir))
@@ -68,21 +69,45 @@ def resize_images(imdir, imsize):
       else:
           cv2.imwrite(imdir + 'resized/{}/{}'.format(subdir,image_name), newimage)
 
+def extract_labels(imdir):
+  
+  print('extracting labels')
+  IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
 
-def extract_images(f):
-  """Extract the images into a 4D uint8 numpy array [index, y, x, depth].
+  labels = []
+  for image_path in tqdm.tqdm(IMAGE_PATHS):
+      subdir = image_path.split('/')[-2]
 
-  Args:
-    f: A file object that can be passed into a gzip reader.
+      if subdir == 'Aryan Nations Flag':
+          labels.append(1)
+      elif subdir == 'III Percenters Flag':
+          labels.append(2)
+      elif subdir == 'Iron Cross Flag':
+          labels.append(3)
+      elif subdir == 'Odal Rune Flag':
+          labels.append(4)
+      else subdir == 'Others':
+          labels.append(5)
 
-  Returns:
-    data: A 4D uint8 numpy array [index, y, x, depth].
+  labelnp = numpy.array(labels, dtype=numpy.uint8)
 
-  Raises:
-    ValueError: If the bytestream does not start with 2051.
+  return labelnp
 
-  """
+
+def extract_images(imdir):
+'''
   print('Extracting', f.name)
+  IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
+  IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
+
+  for image_path in tqdm.tqdm(IMAGE_PATHS):
+
+'''
   with gzip.GzipFile(fileobj=f) as bytestream:
     magic = _read32(bytestream)
     if magic != 2051:
@@ -104,35 +129,6 @@ def dense_to_one_hot(labels_dense, num_classes):
   labels_one_hot = numpy.zeros((num_labels, num_classes))
   labels_one_hot.flat[index_offset + labels_dense.ravel()] = 1
   return labels_one_hot
-
-
-def extract_labels(f, one_hot=False, num_classes=10):
-  """Extract the labels into a 1D uint8 numpy array [index].
-
-  Args:
-    f: A file object that can be passed into a gzip reader.
-    one_hot: Does one hot encoding for the result.
-    num_classes: Number of classes for the one hot encoding.
-
-  Returns:
-    labels: a 1D uint8 numpy array.
-
-  Raises:
-    ValueError: If the bystream doesn't start with 2049.
-  """
-  print('Extracting', f.name)
-  with gzip.GzipFile(fileobj=f) as bytestream:
-    magic = _read32(bytestream)
-    if magic != 2049:
-      raise ValueError('Invalid magic number %d in MNIST label file: %s' %
-                       (magic, f.name))
-    num_items = _read32(bytestream)
-    buf = bytestream.read(num_items)
-    labels = numpy.frombuffer(buf, dtype=numpy.uint8)
-    if one_hot:
-      return dense_to_one_hot(labels, num_classes)
-    return labels
-
 
 class DataSet(object):
 
@@ -249,22 +245,24 @@ def read_data_sets(train_dir,
     validation = fake()
     test = fake()
     return base.Datasets(train=train, validation=validation, test=test)
-
   
-  TRAIN_IMAGES = '/home/michael/data/crop'
-  TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
+  TRAIN_IMAGES = '/home/michael/data/crop/'
   
   resize_images(TRAIN_IMAGES, 28)
 
-  local_file = gzip.compress( + 'crop_images.gz'
+  #convert resized images into a tarfile that can be read by a gzip reader
+  tar = tarfile.open('crop.tar', 'w:gz')
+  directories = glob.glob('/home/michael/data/crop/resized/**/')
+  for name in directories:
+      tar.add(TRAIN_IMAGES + name, arcname = name)
+  tar.close()
+
+  local_file = tar
 
   with open(local_file, 'rb') as f:
     train_images = extract_images(f)
 
-  local_file = base.maybe_download(TRAIN_LABELS, train_dir,
-                                   SOURCE_URL + TRAIN_LABELS)
-  with open(local_file, 'rb') as f:
-    train_labels = extract_labels(f, one_hot=one_hot)
+  train_labels = extract_labels(TRAIN_IMAGES)
 
   train = DataSet(train_images, train_labels, dtype=dtype, reshape=reshape)
   test = fake()
