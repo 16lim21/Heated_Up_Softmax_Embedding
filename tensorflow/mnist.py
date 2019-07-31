@@ -58,54 +58,59 @@ def resize_images(imdir, imsize):
     IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
 
     try:
-      os.stat(imdir + 'resized')
+      os.stat(imdir + '../resized')
     except:
-      os.makedirs(imdir + 'resized')
+      os.makedirs(imdir + '../resized')
     
     for directory in tqdm.tqdm(DIRECTORIES):
       new_directory = directory.split('/')[-2]
-      try:
-          os.stat(imdir + 'resized/{}/'.format(new_directory))
-      except:
-          os.makedirs(imdir + 'resized/{}/'.format(new_directory))
-          #print(imdir + 'resized/{}/'.format(new_directory))
+      if new_directory != '../resized':
+          try:
+              os.stat(imdir + '../resized/{}/'.format(new_directory))
+          except:
+              os.makedirs(imdir + '../resized/{}/'.format(new_directory))
 
     for image_path in tqdm.tqdm(IMAGE_PATHS):
       image_name = image_path.split('/')[-1]
-      
-      #image = Image.open(image_path)
-      #image = image.resize((imsize, imsize), resample=Image.BILINEAR)
       
       image = cv2.imread(image_path)
       newimage = cv2.resize(image, (imsize, imsize), interpolation = cv2.INTER_AREA)
       
       imagenp = numpy.array(newimage) 
-      #imagenp = imagenp[:, :, ::-1]
 
       if image_path.split('/')[-3] == 'Others': 
-          
+    
           subdir = image_path.split('/')[-2]
           try:
-              os.stat(imdir + 'Others/{}/'.format(subdir))
+              os.stat(imdir + '../resized/Others/{}/'.format(subdir))
           except:
-              os.makedirs(imdir + 'Others/{}/'.format(subdir))
+              os.makedirs(imdir + '../resized/Others/{}/'.format(subdir))
 
-          cv2.imwrite(imdir + 'resized/Others/{}/{}'.format(subdir,image_name), imagenp)
+          cv2.imwrite(imdir + '../resized/Others/{}/{}'.format(subdir,image_name), imagenp)
       else:
           class_name = image_path.split('/')[-2]
-          if not cv2.imwrite(imdir + 'resized/{}/{}'.format(class_name,image_name), imagenp):
-              print('didnt write ' + imdir + 'resized/{}/{}'.format(class_name,image_name))
+          if not cv2.imwrite(imdir + '../resized/{}/{}'.format(class_name,image_name), imagenp):
+              print('didnt write ' + imdir + '../resized/{}/{}'.format(class_name,image_name))
+
+    return(imdir + '../resized/')
 
 def extract_labels(imdir):
-  
-  print('extracting labels')
-  IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
-  IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
-  IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
-  IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
+    """
+    Extract the labels into a 1D uint8 numpy array [index].
+    Args:
+    imdir: Path to directory of images (labels given by subdirectories containing each image).
 
-  labels = []
-  for image_path in tqdm.tqdm(IMAGE_PATHS):
+    Returns:
+    labelsnp: a 1D uint8 numpy array.
+    """
+    print('extracting labels')
+    IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
+    IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
+    IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
+    IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
+
+    labels = []
+    for image_path in tqdm.tqdm(IMAGE_PATHS):
       subdir = image_path.split('/')[-2]
 
       if subdir == 'Aryan Nations Flag':
@@ -119,35 +124,38 @@ def extract_labels(imdir):
       else: 
           labels.append(5)
 
-  labelnp = numpy.array(labels, dtype=numpy.uint8)
+    labelnp = numpy.array(labels, dtype=numpy.uint8)
 
-  return labelnp
+    return labelnp
 
 
 def extract_images(imdir):
-    '''
-    print('Extracting', f.name)
+    """
+    Extract the images into a 4D uint8 numpy array [index, y, x, depth]
+
+    Args:
+    imdir: Path to directory of images (labels given by subdirectories containing each image).
+   
+    Returns:
+    datanp: A 4D uint8 numpy array [index, y, x, depth].
+    """
+    print('Extracting {}'.format(imdir))
     IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
     IMAGE_PATHS.extend(glob.glob(imdir + '**/*png', recursive=True))
     IMAGE_PATHS.extend(glob.glob(imdir + '**/*gif', recursive=True))
     IMAGE_PATHS.extend(glob.glob(imdir + '**/*jpeg', recursive=True))
 
+    num_images = len(IMAGE_PATHS)
+    print(num_images)
+    data = []
+
     for image_path in tqdm.tqdm(IMAGE_PATHS):
+      image = cv2.imread(image_path)
+      data.append(image)
 
-    '''
-    with gzip.GzipFile(fileobj=f) as bytestream:
-        magic = _read32(bytestream)
-    if magic != 2051:
-        raise ValueError('Invalid magic number %d in MNIST image file: %s' %
-                       (magic, f.name))
-    num_images = _read32(bytestream)
-    rows = _read32(bytestream)
-    cols = _read32(bytestream)
-    buf = bytestream.read(rows * cols * num_images)
-    data = numpy.frombuffer(buf, dtype=numpy.uint8)
-    data = data.reshape(num_images, rows, cols, 1)
-    return data
-
+    datanp = numpy.array(data)
+    print(datanp.shape)
+    return datanp
 
 def dense_to_one_hot(labels_dense, num_classes):
     """Convert class labels from scalars to one-hot vectors."""
@@ -274,26 +282,17 @@ def read_data_sets(train_dir,
         return base.Datasets(train=train, validation=validation, test=test)
 
     TRAIN_IMAGES = '/home/michael/data/crop/'
+    IMAGE_SHAPE = 28 #28x28 pixel images
 
-    resize_images(TRAIN_IMAGES, 28)
+    RESIZED_IMAGES = resize_images(TRAIN_IMAGES, IMAGE_SHAPE)
 
-    #convert resized images into a tarfile that can be read by a gzip reader
-    tar = tarfile.open('crop.tar', 'w:gz')
-    directories = glob.glob('/home/michael/data/crop/resized/**/')
-    for name in directories:
-        tar.add(name, arcname = name)
-    tar.close()
+    train_images = extract_images(RESIZED_IMAGES)
 
-    local_file = tar
-
-    with open(local_file, 'rb') as f:
-        train_images = extract_images(f)
-
-    train_labels = extract_labels(TRAIN_IMAGES)
+    train_labels = extract_labels(RESIZED_IMAGES)
 
     train = DataSet(train_images, train_labels, dtype=dtype, reshape=reshape)
-    test = fake()
-    validation = fake()
+    test = DataSet([], [], fake_data=True, one_hot=one_hot, dtype=dtype)
+    validation = DataSet([], [], fake_data=True, one_hot=one_hot, dtype=dtype) 
 
     return base.Datasets(train=train, validation=validation, test=test)
 

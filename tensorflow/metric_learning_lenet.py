@@ -83,7 +83,7 @@ args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 
-tf.set_random_seed(args.seed)
+tf.compat.v1.set_random_seed(args.seed)
 np.random.seed(args.seed)
 
 mnist = mnist_dataset.read_data_sets("./data/", one_hot=True, reshape=False)
@@ -174,7 +174,7 @@ logger = Logger(LOG_DIR)
 # Parameters
 learning_rate =args.learning_rate 
 training_epochs = args.nb_epoch
-batch_size = 20
+batch_size = 128
 display_step = 10
 
 # Network Parameters
