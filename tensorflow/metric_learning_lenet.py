@@ -55,7 +55,7 @@ parser.add_argument('--save_image_dir', default='./mnist_distribution_map/',
         help='folder to save the feature distribution result')
 parser.add_argument('--alpha' , type=float, default=1.0, help='beta hyperparameter value')
 parser.add_argument('--beta' , type=float, default=0.0, help='beta hyperparameter value')
-parser.add_argument('--gpu-id', default='0', type=str, help='id(s) for CUDA_VISIBLE_DEVICES')
+parser.add_argument('--gpu-id', default='2', type=str, help='id(s) for CUDA_VISIBLE_DEVICES')
 parser.add_argument('--display_step', default=10, type=int, help='show step')
 parser.add_argument('--embedding_dim', default=2, type=int, help='embedding dim')
 parser.add_argument('--learning_rate', default=0.01, type=float, help='learning rate')
@@ -174,19 +174,19 @@ logger = Logger(LOG_DIR)
 # Parameters
 learning_rate =args.learning_rate 
 training_epochs = args.nb_epoch
-batch_size = 128
+batch_size = 20
 display_step = 10
 
 # Network Parameters
 n_input = 28 # MNIST data input (img shape: 28*28)
-n_classes = 10 # MNIST total classes (0-9 digits)
+n_classes = 5 # MNIST total classes (0-4 digits)
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 # tf Graph input
-X = tf.placeholder("float", [None, n_input, n_input, 1])
+X = tf.placeholder("float", [None, n_input, n_input, 3])
 #X = tf.placeholder("float", [None, 784])
 Y = tf.placeholder("float", [None, n_classes])
 alpha_place_holder = tf.placeholder(tf.float32, shape=())
