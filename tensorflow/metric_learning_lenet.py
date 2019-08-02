@@ -174,7 +174,7 @@ logger = Logger(LOG_DIR)
 # Parameters
 learning_rate =args.learning_rate 
 training_epochs = args.nb_epoch
-batch_size = 128
+batch_size = 20
 display_step = 10
 
 # Network Parameters

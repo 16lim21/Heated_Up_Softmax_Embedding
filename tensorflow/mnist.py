@@ -96,12 +96,12 @@ def resize_images(imdir, imsize):
 
 def extract_labels(imdir):
     """
-    Extract the labels into a 1D uint8 numpy array [index].
+    Extract the labels into a 2D uint8 numpy array [num_labels , 5] (5 is the number of classes).
     Args:
     imdir: Path to directory of images (labels given by subdirectories containing each image).
 
     Returns:
-    labelsnp: a 1D uint8 numpy array.
+    labelsnp: a 2D uint8 numpy array.
     """
     print('extracting labels')
     IMAGE_PATHS = glob.glob(imdir + '**/*jpg', recursive=True)
@@ -114,15 +114,15 @@ def extract_labels(imdir):
       subdir = image_path.split('/')[-2]
 
       if subdir == 'Aryan Nations Flag':
-          labels.append(1)
+          labels.append([1,0,0,0,0])
       elif subdir == 'III Percenters Flag':
-          labels.append(2)
+          labels.append([0,1,0,0,0])
       elif subdir == 'Iron Cross Flag':
-          labels.append(3)
+          labels.append([0,0,1,0,0])
       elif subdir == 'Odal Rune Flag':
-          labels.append(4)
+          labels.append([0,0,0,1,0])
       else: 
-          labels.append(5)
+          labels.append([0,0,0,0,1])
 
     print(len(labels))
     labelnp = numpy.array(labels, dtype=numpy.uint8)
@@ -282,6 +282,7 @@ def read_data_sets(train_dir,
         test = fake()
         return base.Datasets(train=train, validation=validation, test=test)
 
+    #This is the directory containing the flag images
     TRAIN_IMAGES = '/home/michael/data/crop/'
     IMAGE_SHAPE = 28 #28x28 pixel images
 
@@ -292,8 +293,8 @@ def read_data_sets(train_dir,
     train_labels = extract_labels(RESIZED_IMAGES)
 
     train = DataSet(train_images, train_labels, dtype=dtype, reshape=reshape)
-    test = DataSet([], [], fake_data=True, one_hot=one_hot, dtype=dtype)
-    validation = DataSet([], [], fake_data=True, one_hot=one_hot, dtype=dtype) 
+    test = train 
+    validation = train
 
     return base.Datasets(train=train, validation=validation, test=test)
 
